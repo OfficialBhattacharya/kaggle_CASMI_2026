@@ -5,6 +5,34 @@ Shared memory across devices. Append at the top. Keep it short — numbers and d
 
 ---
 
+## 2026-09-18 — Kaggle wired up, EDA notebook pushed
+
+**Kaggle auth.** The `kaggle` pip package caps at 1.7.4.5 on Python 3.9 and predates KGAT_ tokens —
+it hard-requires a legacy `kaggle.json` and raises at import. `scripts/kaggle_api.py` talks to the
+REST API directly with the token as a plain bearer, which works.
+
+**Token scopes are partial.** This token has `competitions.list`, `competitions.data` and
+`kernels.push`, but **not `kernels.get`** — so run status cannot be read from here. `--status` falls
+back to the kernel listing and prints the URL. Regenerate the token with kernel read permission if
+status polling matters.
+
+**Pushed:** `01_eda.ipynb` -> <https://www.kaggle.com/code/digantabhattacharya/casmi26-eda-data-task-and-metric>
+(version 1, private, internet off). Confirmed private: an unauthenticated GET returns 404. Note the
+`isPrivate` field in the `/kernels/list` response is *not* populated — it reads `false` for private
+kernels, so do not trust it; test anonymously instead.
+
+**Already in flight (pre-dates this repo):** a submission from 16:03 UTC today,
+"Enveda CASMI 2026 - Fast Spectral Cosine Baseline | Version 1", still `pending` with no score.
+Its notebook is `digantabhattacharya/enveda-casmi-2026-fast-spectral-cosine-baseline`.
+`notebooks/02_baseline_submission.ipynb` in this repo covers similar ground (cosine/modified-cosine
+library search) — **compare the two before pushing it**, rather than spending a submission on a
+duplicate approach.
+
+**Data confirmed:** train.parquet 3,033 MB, test.parquet 4.8 MB, sample_submission.csv 44 KB.
+The 3 GB train file is the practical constraint on any local work.
+
+---
+
 ## 2026-09-18 — repo set up
 
 Framework built and smoke-tested on synthetic data (`python3 tests/test_smoke.py`).

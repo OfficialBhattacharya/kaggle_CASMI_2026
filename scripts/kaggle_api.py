@@ -99,6 +99,14 @@ def kernel_status(slug: str) -> dict:
     return request("GET", "/kernels/status", params={"userName": user, "kernelSlug": name})
 
 
+def list_kernels(user: str | None = None, page_size: int = 50) -> list[dict]:
+    """Kernels belonging to `user`. Note the `isPrivate` field in this response
+    is not populated — check visibility by fetching the URL unauthenticated."""
+    return request("GET", "/kernels/list",
+                   params={"user": user or whoami(), "pageSize": page_size,
+                           "sortBy": "dateCreated"}) or []
+
+
 def competition_files(competition: str) -> list[dict]:
     r = request("GET", f"/competitions/data/list/{competition}")
     return r.get("files", r) if isinstance(r, dict) else r

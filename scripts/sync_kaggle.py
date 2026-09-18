@@ -25,7 +25,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from kaggle_api import (KaggleError, competition_files, kernel_status,  # noqa: E402
-                        push_kernel, submissions, whoami)
+                        list_kernels, push_kernel, submissions, whoami)
 
 ROOT = Path(__file__).resolve().parents[1]
 COMP = "enveda-CASMI26-molecule-id-mass-spectra"
@@ -124,16 +124,33 @@ def push_utils() -> int:
 
 
 def status(which: str) -> int:
+    """Report run status, falling back to a listing when the token lacks scope.
+
+    A KGAT_ token created without the `kernels.get` permission can push a
+    notebook but cannot read its run status. The listing endpoint still shows
+    the kernel exists, which is usually enough to confirm a push landed; for the
+    actual run result, open the URL.
+    """
     slug = f"{username()}/casmi26-{which}"
     try:
         r = kernel_status(slug)
+        print(f"{slug}: {r.get('status')}")
+        if r.get("failureMessage"):
+            print(f"  failure: {r['failureMessage']}")
+        return 0
     except KaggleError as e:
-        print(e)
-        return 1
-    print(f"{slug}: {r.get('status')}")
-    if r.get("failureMessage"):
-        print(f"  failure: {r['failureMessage']}")
-    return 0
+        if "kernels.get" not in str(e):
+            print(e)
+            return 1
+        print(f"token lacks the 'kernels.get' scope — cannot read run status.")
+        found = [k for k in list_kernels() if f"casmi26-{which}" in (k.get("ref") or "")]
+        for k in found:
+            print(f"  exists: {k['ref']}  (open it to see the run result)")
+            print(f"          https://www.kaggle.com/code/{k['ref']}")
+        if not found:
+            print(f"  no kernel matching casmi26-{which} in the account listing")
+        print("\n  To enable status here, create a token with kernel read permission.")
+        return 0
 
 
 def main() -> int:
