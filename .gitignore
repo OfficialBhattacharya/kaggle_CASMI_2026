@@ -19,6 +19,8 @@ venv/
 # notebook outputs are stripped before commit — see scripts/strip_notebooks.py
 # secrets
 kaggle.json
+access_token
+.kaggle/
 .env
 .DS_Store
 smoke.csv
