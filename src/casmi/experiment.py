@@ -84,6 +84,7 @@ def run_experiment(
     candidate_universe: str = "full",
     log: bool = True,
     keep_predictions: bool = False,
+    results_path: Path | None = None,
 ) -> ExperimentResult:
     """Fit on the split's train view, rank the held-out molecules, score.
 
@@ -145,7 +146,7 @@ def run_experiment(
     result = ExperimentResult(config, report, time.time() - t0,
                               predictions if keep_predictions else {})
     if log:
-        log_result(result)
+        log_result(result, results_path)
         print(f"[{config.hash()}] {config.name}\n{report}")
     return result
 
@@ -181,8 +182,8 @@ def log_result(result: ExperimentResult, path: Path | None = None) -> Path:
     path = path or (PATHS.results / LEADERBOARD)
     path.parent.mkdir(parents=True, exist_ok=True)
     row = pd.DataFrame([result.to_row()])
-    if path.exists():
-        old = pd.read_csv(path)
+    old = _read_results(path)
+    if not old.empty:
         old = old[old.get("hash", pd.Series(dtype=str)) != result.config.hash()]
         row = pd.concat([old, row], ignore_index=True)
     row.to_csv(path, index=False)
@@ -192,7 +193,22 @@ def log_result(result: ExperimentResult, path: Path | None = None) -> Path:
 def leaderboard(path: Path | None = None, sort_by: str = "mrr") -> pd.DataFrame:
     """Every local experiment so far, best first. Commit this file — it is the
     shared memory that makes working from several devices coherent."""
-    path = path or (PATHS.results / LEADERBOARD)
-    if not path.exists():
+    df = _read_results(path or (PATHS.results / LEADERBOARD))
+    if df.empty or sort_by not in df.columns:
+        return df
+    return df.sort_values(sort_by, ascending=False).reset_index(drop=True)
+
+
+def _read_results(path: Path) -> pd.DataFrame:
+    """Read the results table, tolerating an absent, empty or truncated file.
+
+    A run that crashed mid-write must not make every later run fail too — the
+    results table is a convenience, never a reason to lose an experiment.
+    """
+    if not path.exists() or path.stat().st_size == 0:
         return pd.DataFrame()
-    return pd.read_csv(path).sort_values(sort_by, ascending=False).reset_index(drop=True)
+    try:
+        return pd.read_csv(path)
+    except (pd.errors.EmptyDataError, pd.errors.ParserError) as e:
+        print(f"warning: could not parse {path} ({e}); starting a fresh table")
+        return pd.DataFrame()

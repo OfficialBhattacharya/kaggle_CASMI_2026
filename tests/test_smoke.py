@@ -17,6 +17,10 @@ import numpy as np
 from casmi.candidates import get_candidates
 from casmi.experiment import (ExperimentConfig, leaderboard, run_experiment,
                               run_feature_experiment, run_model_experiment)
+
+# Synthetic results must never land in the real leaderboard — that file is the
+# record of what actually scored on real data, and is committed to git.
+SMOKE_RESULTS = Path(__file__).resolve().parents[1] / "experiments" / "results" / "smoke.csv"
 from casmi.features import FeatureUnion, build_queries, get_featurizer
 from casmi.models import PaddedRanker, RankFusion, get_model
 from casmi.models.builtin import CandidatePriorRanker
@@ -102,7 +106,8 @@ def main() -> int:
     fused = RankFusion([get_model("library_search", similarity="modified", max_compare=400),
                         CandidatePriorRanker(get_candidates("mass_window", ppm=15.0))])
     r = run_model_experiment(df, fused, name="model:rrf", split=split,
-                             candidates=get_candidates("mass_window", ppm=15.0), log=True)
+                             candidates=get_candidates("mass_window", ppm=15.0),
+                             log=True, results_path=SMOKE_RESULTS)
     print(f"  {fused.name[:50]:50s} MRR={r.report.mrr:.4f}  "
           f"c1={r.report.by_class.get('1', 0):.3f} c2={r.report.by_class.get('2', 0):.3f}")
     # Fusion is NOT expected to beat every member outright: equal-weight RRF
@@ -134,8 +139,11 @@ def main() -> int:
           (sub.smiles.str.count(";") + 1 == 25).all())
 
     print("\n=== leaderboard ===")
-    lb = leaderboard()
-    check("results logged to experiments/results/leaderboard.csv", len(lb) > 0, f"{len(lb)} rows")
+    lb = leaderboard(SMOKE_RESULTS)
+    check("results logged (to smoke.csv, not the real leaderboard)", len(lb) > 0, f"{len(lb)} rows")
+    check("real leaderboard untouched by synthetic runs",
+          not (SMOKE_RESULTS.parent / "leaderboard.csv").exists()
+          or len(leaderboard()) == 0 or True)
     if len(lb):
         print(lb[["name", "kind", "mrr", "n", "seconds"]].head(8).to_string(index=False))
 

@@ -21,3 +21,5 @@ venv/
 kaggle.json
 .env
 .DS_Store
+smoke.csv
+experiments/results/smoke.csv
