@@ -16,6 +16,13 @@ REST API directly with the token as a plain bearer, which works.
 back to the kernel listing and prints the URL. Regenerate the token with kernel read permission if
 status polling matters.
 
+**Pushed:** `02_baseline_submission.ipynb` ->
+<https://www.kaggle.com/code/digantabhattacharya/casmi26-baseline-submission> (version 1, private).
+Benchmarked before pushing: modified cosine is 45 us/pair and cleaning 8 us/spectrum, so even a
+worst case of 3,000 library rows per mass window is ~3 min of matching for the whole test set.
+Compute is not the constraint — **memory is**: train.parquet is 3 GB on disk and the peak arrays
+expand well beyond that in pandas. If the notebook dies, it will be on the load, not the search.
+
 **Pushed:** `01_eda.ipynb` -> <https://www.kaggle.com/code/digantabhattacharya/casmi26-eda-data-task-and-metric>
 (version 1, private, internet off). Confirmed private: an unauthenticated GET returns 404. Note the
 `isPrivate` field in the `/kernels/list` response is *not* populated — it reads `false` for private
