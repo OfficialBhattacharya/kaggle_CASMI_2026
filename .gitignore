@@ -1,0 +1,23 @@
+# data — never commit competition data (CC BY-NC, and huge)
+data/*
+!data/.gitkeep
+work/
+*.parquet
+*.csv
+!experiments/results/*.csv
+!sample_submission.csv
+submission.csv
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.ipynb_checkpoints/
+
+# notebook outputs are stripped before commit — see scripts/strip_notebooks.py
+# secrets
+kaggle.json
+.env
+.DS_Store
